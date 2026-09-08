@@ -70,30 +70,35 @@ TAK_QUESTIONS = [
 def is_exact(message, target_words):
     if not message.text:
         return False
-    text = message.text.strip()
+    text = message.text.strip().lower()
     if isinstance(target_words, str):
-        return text == target_words
-    return text in target_words
+        return text == target_words.lower()
+    return text in [w.lower() for w in target_words]
 
-# 🎬 ميزة البحث وتحميل الفيديو بدقة عالية مع دعم تجاوز الحظر (Android Client)
-@bot.message_handler(func=lambda message: message.text and message.text.startswith("يوف "))
+# 🎬 أمر التحميل (يستهلك طاقة السيرفر كاملة لجلب أي فيديو يوتيوب بدقة خارقة)
+@bot.message_handler(func=lambda message: message.text and message.text.strip().startswith("يوف "))
 def download_youtube_video(message):
     query = message.text.replace("يوف ", "").strip()
     if not query:
         bot.reply_to(message, "اكتب اسم المقطع بعد كلمة **يوف**، مثال:\n`يوف اغنية حسام الرسام`", parse_mode="Markdown")
         return
 
-    wait_msg = bot.reply_to(message, "⚡ جاري البحث وتحميل الفيديو بأعلى دقة HD...", parse_mode="Markdown")
+    wait_msg = bot.reply_to(message, "🚀 جاري سحب طاقة السيرفر وجلب الفيديو بأقصى سرعة وأعلى جودة...", parse_mode="Markdown")
     
-    # إعدادات دقة فائقة مع تجاوز استخراج يوتيوب للسيرفرات
+    # إعدادات تستهلك عزم السيرفر بالكامل لدمج أفضل فيديو وأفضل صوت وتجاوز أي حظر
     ydl_opts = {
-        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+        'format': 'bestvideo+bestaudio/best',
+        'merge_output_format': 'mp4',
         'outtmpl': f'video_{message.from_user.id}.%(ext)s',
         'default_search': 'ytsearch1:',
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'extractor_args': {'youtube': {'player_client': ['android', 'web']}}
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'ios', 'web']
+            }
+        }
     }
 
     try:
@@ -112,7 +117,7 @@ def download_youtube_video(message):
                 bot.send_video(
                     message.chat.id,
                     video_file,
-                    caption=f"🎬 **{title}**\n\n⚡ تم التحميل بدقة عالية بطلب من: [{message.from_user.first_name}](tg://user?id={message.from_user.id})",
+                    caption=f"🎬 **{title}**\n\n⚡ تم التحميل بأقصى سرعة سيرفر بطلب من: [{message.from_user.first_name}](tg://user?id={message.from_user.id})",
                     reply_to_message_id=message.message_id,
                     parse_mode="Markdown"
                 )
@@ -123,15 +128,16 @@ def download_youtube_video(message):
             
     except Exception as e:
         print(f"Error: {e}")
-        bot.edit_message_text("❌ تعذر جلب الفيديو، تأكد من الاسم وحاول مجدداً!", message.chat.id, wait_msg.message_id)
+        bot.edit_message_text("❌ تعذر جلب الفيديو، تأكد من الاسم أو الرابط وحاول مجدداً!", message.chat.id, wait_msg.message_id)
 
-@bot.message_handler(func=lambda message: is_exact(message, ["اختصارات", "الاختصارات", "/start", "الاوامر"]))
+# 💬 قسم الردود والاختصارات الموسع (كل كلمات السوالف والدردشة)
+@bot.message_handler(func=lambda message: is_exact(message, ["اختصارات", "الاختصارات", "/start", "الاوامر", "اوامر"]))
 def reply_shortcuts(message):
     shortcuts_text = (
-        "هلا بيك يا بعد روحي! 🖤🔥\n\n"
-        "🎬 **تحميل الفيديو بدقة عالية:** `يوف` + اسم المقطع\n"
-        "🎲 **فعاليات:** `تك` | `ت` (500 سؤال)\n"
-        "👑 **الشخصيات:** `ايدا` | `يوسف` | `الكسندر` | `راح اطفيج`\n"
+        "هلا بيك يا بعد روحي وتاج راسِي! 🖤🔥\n\n"
+        "🎬 **تحميل الفيديو بأقصى سرعة:** `يوف` + اسم المقطع (يسحب طاقة السيرفر كلها لجلب أي فيديو)\n"
+        "🎲 **فعاليات:** `تك` | `ت` (500 سؤال صراحة وجرأة وتحشيش)\n"
+        "👑 **الشخصيات والردود:** ايدا، يوسف، جوعان، شلونك، هلو، منور، تصبح على خير، وغيرها الكثير!\n"
         "📊 **الحساب:** `ايدي` | `بروفايلي`"
     )
     bot.reply_to(message, shortcuts_text, parse_mode="Markdown")
@@ -140,9 +146,33 @@ def reply_shortcuts(message):
 def reply_tak(message):
     bot.reply_to(message, f"🎯 **فعالية:**\n\n{random.choice(TAK_QUESTIONS)}", parse_mode="Markdown")
 
+@bot.message_handler(func=lambda message: is_exact(message, ["هلو", "هلا", "السلام عليكم", "الوو", "حي الله"]))
+def reply_hello(message):
+    bot.reply_to(message, "هلا بيك يالغالي، منور البوت والقروب كله! 🖤✨")
+
+@bot.message_handler(func=lambda message: is_exact(message, ["شلونك", "شخبارك", "شكو ماكو", "اخبارك"]))
+def reply_howareyou(message):
+    bot.reply_to(message, "الحمد لله عايشين ونقصف بالفيديوهات، إنت شلونك عساك بخير؟ 😎")
+
+@bot.message_handler(func=lambda message: is_exact(message, ["جوعان", "جوع", "ريد أكل", "ناكل"]))
+def reply_hungry(message):
+    bot.reply_to(message, "قوم اطلب صاج أو لفات فلافل وسد حلگك، لا تخليني أجوع وياك! 😂🍔")
+
+@bot.message_handler(func=lambda message: is_exact(message, ["تعبان", "ضايج", "ملل", "خنكة"]))
+def reply_tired(message):
+    bot.reply_to(message, "افا علي، اكتب `يوف` واسم أغنيتك المفضلة وخلي البوت يسحب لك فيديو يروق راسك! 🎵🖤")
+
+@bot.message_handler(func=lambda message: is_exact(message, ["منور", "منور البوت"]))
+def reply_mnoor(message):
+    bot.reply_to(message, "بوجودك يا غالي، النور نور عيونك ✨")
+
+@bot.message_handler(func=lambda message: is_exact(message, ["تصبح على خير", "أشوفكم على خير", "باي"]))
+def reply_bye(message):
+    bot.reply_to(message, "وأنت من أهل الخير، دير بالك على نفسك ونشوفك على خير 👋🖤")
+
 @bot.message_handler(func=lambda message: is_exact(message, ["راح اطفيج", "راح اطفيك"]))
 def reply_turn_off(message):
-    bot.reply_to(message, "تدلل بابا ❤️")
+    bot.reply_to(message, "تدلل بابا، السيرفر شغال 24 ساعة وما أنطفي أبداً ❤️")
 
 @bot.message_handler(func=lambda message: is_exact(message, "ايدا"))
 def reply_ada(message):
@@ -150,3 +180,4 @@ def reply_ada(message):
 
 bot.skip_pending = True
 bot.infinity_polling(skip_pending=True)
+
