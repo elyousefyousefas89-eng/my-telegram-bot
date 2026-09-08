@@ -119,8 +119,7 @@ def reply_shortcuts(message):
         "👋 **الوداع:** تصبح على خير، أشوفكم على خير، باي\n"
         "👑 **الشخصيات والتحكم:** راح اطفيج، راح اطفيك، ايدا، الكسندر، يوسف\n"
         "🆔 **معلومات الحساب:** ايدي، بروفايلي\n"
-        "🎬 **التحميل السريع:** يوف + اسم المقطع\n"
-        "🤖 **الذكاء الاصطناعي:** امنشن البوت أو رد على رسالته ويسولف وياك!"
+        "🎬 **التحميل السريع:** يوف + اسم المقطع"
     )
     bot.reply_to(message, shortcuts_text, parse_mode="Markdown")
 
@@ -181,28 +180,5 @@ def reply_yousef(message):
 def reply_id(message):
     bot.reply_to(message, f"🆔 ايدك يا بطل: `{message.from_user.id}`\n👤 اسمك: {message.from_user.first_name}", parse_mode="Markdown")
 
-# 🤖 الذكاء الاصطناعي (يعمل فقط عند المنشن أو الرد على البوت)
-@bot.message_handler(func=lambda message: True)
-def ai_reply_on_mention(message):
-    if not message.text or message.text.startswith("/"):
-        return
-    
-    is_reply_to_bot = message.reply_to_message and message.reply_to_message.from_user.id == bot.get_me().id
-    is_mentioned = f"@{bot.get_me().username}" in message.text if bot.get_me().username else False
-
-    if is_reply_to_bot or is_mentioned:
-        try:
-            clean_text = message.text.replace(f"@{bot.get_me().username}", "").strip()
-            response = ai_client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=f"أنت بوت تلغرام عراقي ذكي ومحبوب، تجيب باللهجة العراقية وبأسلوب لطيف ومختصر ومناسب للدردشة. رد على هذه الرسالة: {clean_text}"
-            )
-            if response and response.text:
-                bot.reply_to(message, response.text)
-        except Exception as e:
-            print(f"AI Error: {e}")
-            bot.reply_to(message, "ها حبيبي وياك، صار عندي لود بسيط، عيدها قلبي! 😅")
-
 bot.skip_pending = True
 bot.infinity_polling(skip_pending=True)
-
