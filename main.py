@@ -36,14 +36,9 @@ TAK_QUESTIONS = [
     "شنو الشي اللي سويته وبقيت ندمان عليه لحد اليوم؟", "هل تعرضت للخيانه من قبل صديق مقرب؟",
     "شنو الصفة اللي اذا شفتها بشخص تبتعد عنه فوراً؟", "شنو أكثر تاريخ بالتقويم تحبه وشنو المناسبة؟",
     "هل تحب تظهر مشاعرك للناس لو تكتمها بقلبك؟", "شنو الأغنية اللي تحسها تعبر عن حياتك بالظبط؟",
-    "لو ربحت مليون دولار هسه، شنو أول شي تشتريه؟", "منو الشخص اللي تحسه يفهَمك من عيونك بدون ما تحكي؟"
+    "لو ربحت مليون دولار هسه، شنو أول شي تشتريه؟",
+    "منو الشخص اللي تحسه يفهَمك من عيونك بدون ما تحكي؟"
 ]
-
-def check_match(message, target_list):
-    if not message.text:
-        return False
-    text = message.text.strip().lower()
-    return text in [w.lower() for w in target_list]
 
 # 🤫 نظام الهمسات السرية
 @bot.message_handler(func=lambda message: message.text and message.text.strip().startswith("همسة "))
@@ -56,7 +51,7 @@ def secret_whisper(message):
     bot.send_message(message.chat.id, f"🤫 **همسة سرية:**\n{whisper_text}", parse_mode="Markdown")
 
 # 📋 الأوامر والاختصارات العامة
-@bot.message_handler(func=lambda message: check_match(message, ["اختصارات", "الاختصارات", "/start", "الاوامر", "اوامر"]))
+@bot.message_handler(func=lambda message: message.text and any(w in message.text.lower() for w in ["اختصارات", "الاختصارات", "/start", "الاوامر", "اوامر"]))
 def reply_shortcuts(message):
     shortcuts_text = (
         "هلا بيك يا بعد روحي وتاج راسِي! 🖤🔥 إليك كل الاختصارات المتاحة:\n\n"
@@ -74,53 +69,54 @@ def reply_shortcuts(message):
     )
     bot.reply_to(message, shortcuts_text, parse_mode="Markdown")
 
-@bot.message_handler(func=lambda message: check_match(message, ["تك", "ت"]))
+@bot.message_handler(func=lambda message: message.text and message.text.strip().lower() in ["تك", "ت"])
 def reply_tak(message):
     bot.reply_to(message, f"🎯 **فعالية:**\n\n{random.choice(TAK_QUESTIONS)}", parse_mode="Markdown")
 
-@bot.message_handler(func=lambda message: check_match(message, ["هلو", "هلا", "السلام عليكم", "الوو", "حي الله"]))
+@bot.message_handler(func=lambda message: message.text and any(w in message.text.lower() for w in ["هلو", "هلا", "السلام عليكم", "الوو", "حي الله"]))
 def reply_hello(message):
     bot.reply_to(message, "هلا بيك يالغالي، منور البوت والقروب كله! 🖤✨")
 
-@bot.message_handler(func=lambda message: check_match(message, ["شلونك", "شخبارك", "شكو ماكو", "اخبارك"]))
+@bot.message_handler(func=lambda message: message.text and any(w in message.text.lower() for w in ["شلونك", "شخبارك", "شكو ماكو", "اخبارك"]))
 def reply_howareyou(message):
     bot.reply_to(message, "الحمد لله عايشين، إنت شلونك عساك بخير؟ 😎")
 
-@bot.message_handler(func=lambda message: check_match(message, ["جوعان", "جوع", "ريد أكل", "ناكل"]))
+@bot.message_handler(func=lambda message: message.text and any(w in message.text.lower() for w in ["جوعان", "جوع", "ريد أكل", "ناكل"]))
 def reply_hungry(message):
     bot.reply_to(message, "قوم اطلب صاج أو لفات فلافل وسد حلگك، لا تخليني أجوع وياك! 😂🍔")
 
-@bot.message_handler(func=lambda message: check_match(message, ["تعبان", "ضايج", "ملل", "خنكة"]))
+@bot.message_handler(func=lambda message: message.text and any(w in message.text.lower() for w in ["تعبان", "ضايج", "ملل", "خنكة"]))
 def reply_tired(message):
     bot.reply_to(message, "فداك تعبك وضوجتك، اطلب لك لعبة `تك` وخلينا نغير جو! 🎵🖤", parse_mode="Markdown")
 
-@bot.message_handler(func=lambda message: check_match(message, ["منور", "منور البوت"]))
+@bot.message_handler(func=lambda message: message.text and any(w in message.text.lower() for w in ["منور", "منور البوت"]))
 def reply_mnoor(message):
     bot.reply_to(message, "بوجودك يا غالي، النور نور عيونك ✨")
 
-@bot.message_handler(func=lambda message: check_match(message, ["تصبح على خير", "أشوفكم على خير", "باي"]))
+@bot.message_handler(func=lambda message: message.text and any(w in message.text.lower() for w in ["تصبح على خير", "أشوفكم على خير", "باي"]))
 def reply_bye(message):
     bot.reply_to(message, "وأنت من أهل الخير، دير بالك على نفسك ونشوفك على خير 👋🖤")
 
-@bot.message_handler(func=lambda message: check_match(message, ["راح اطفيج", "راح اطفيك"]))
+@bot.message_handler(func=lambda message: message.text and any(w in message.text.lower() for w in ["راح اطفيج", "راح اطفيك"]))
 def reply_turn_off(message):
     bot.reply_to(message, "تدلل بابا، السيرفر شغال 24 ساعة وما أنطفي أبداً ❤️")
 
-@bot.message_handler(func=lambda message: check_match(message, ["ايدا"]))
+@bot.message_handler(func=lambda message: message.text and "ايدا" in message.text.lower())
 def reply_ada(message):
     bot.reply_to(message, "روح ويوميات ايدا! نعم يويو الملكة بدون منازع ❤️✨")
 
-@bot.message_handler(func=lambda message: check_match(message, ["الكسندر"]))
+@bot.message_handler(func=lambda message: message.text and "الكسندر" in message.text.lower())
 def reply_alexander(message):
     bot.reply_to(message, "حاضر، الكسندر وياكم! الأسطورة حاضرة 😎🔥")
 
-@bot.message_handler(func=lambda message: check_match(message, ["يوسف"]))
+@bot.message_handler(func=lambda message: message.text and "يوسف" in message.text.lower())
 def reply_yousef(message):
     bot.reply_to(message, "ذكره لا يذكر، عوفك من يوسف وخلينا بالسوالف الزينة! 😂")
 
-@bot.message_handler(func=lambda message: check_match(message, ["ايدي", "بروفايلي"]))
+@bot.message_handler(func=lambda message: message.text and any(w in message.text.lower() for w in ["ايدي", "بروفايلي"]))
 def reply_id(message):
     bot.reply_to(message, f"🆔 ايدك يا بطل: `{message.from_user.id}`\n👤 اسمك: {message.from_user.first_name}", parse_mode="Markdown")
 
 bot.skip_pending = True
 bot.infinity_polling(skip_pending=True)
+
