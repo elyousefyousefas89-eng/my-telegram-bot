@@ -1,7 +1,6 @@
 import os
 import random
 import telebot
-from yt_dlp import YoutubeDL
 
 TOKEN = "8968311546:AAEJV1sb8o-KIHzqRV3XHbIjUPQU5TRxFFQ"
 bot = telebot.TeleBot(TOKEN)
@@ -46,65 +45,14 @@ def check_match(message, target_list):
     text = message.text.strip().lower()
     return text in [w.lower() for w in target_list]
 
-# 🚀 التحميل المخصص للروابط فقط (تيك توك، انستا، يوتيوب، إلخ)
-@bot.message_handler(func=lambda message: message.text and message.text.strip().lower().startswith("يوف"))
-def download_media(message):
-    parts = message.text.split(maxsplit=1)
-    if len(parts) < 2:
-        bot.reply_to(message, "⚠️ يرجى كتابة **رابط صحيح** بعد كلمة يوف، مثال:\n`يوف https://...`", parse_mode="Markdown")
-        return
+# 🤫 نظام همسة (الرد على رسالة البوت أو منشن حصراً إذا تطلب الأمر، أو يستلم الأوامر المباشرة)
+@bot.message_handler(func=lambda message: message.text and message.text.strip().startswith("همسة "))
+def secret_whisper(message):
+    whisper_text = message.text.replace("همسة ", "").strip()
+    bot.delete_message(message.chat.id, message.message_id) # حذف رسالة الأصل لضمان السرية
+    bot.send_message(message.chat.id, f"🤫 **همسة سرية:**\n{whisper_text}", parse_mode="Markdown")
 
-    query = parts[1].strip()
-    
-    # فحص إذا المدخل رابط حقيقي حصراً
-    if not (query.startswith("http://") or query.startswith("https://")):
-        return  # يتجاهل الطلب تماماً إذا مو رابط وكأنما البوت ما سامعه
-
-    wait_msg = bot.reply_to(message, "⚡ جاري تحميل الرابط بأقصى سرعة...", parse_mode="Markdown")
-    
-    ydl_opts = {
-        'format': 'mp4/best',
-        'outtmpl': f'media_{message.from_user.id}.%(ext)s',
-        'quiet': True,
-        'no_warnings': True,
-        'nocheckcertificate': True,
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android', 'web', 'mweb']
-            }
-        }
-    }
-
-    try:
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(query, download=True)
-            if 'entries' in info and len(info['entries']) > 0:
-                video_data = info['entries'][0]
-                filename = ydl.prepare_filename(video_data)
-                title = video_data.get('title', 'فيديو')
-            else:
-                filename = ydl.prepare_filename(info)
-                title = info.get('title', 'فيديو')
-
-        if os.path.exists(filename):
-            with open(filename, 'rb') as f:
-                bot.send_video(
-                    message.chat.id,
-                    f,
-                    caption=f"🎬 **{title}**\n\n⚡ تم التحميل بطلب من: [{message.from_user.first_name}](tg://user?id={message.from_user.id})",
-                    reply_to_message_id=message.message_id,
-                    parse_mode="Markdown"
-                )
-            bot.delete_message(message.chat.id, wait_msg.message_id)
-            os.remove(filename)
-        else:
-            bot.edit_message_text("❌ حدث خطأ أثناء التحميل، تأكد من الرابط وحاول مجدداً!", message.chat.id, wait_msg.message_id)
-            
-    except Exception as e:
-        print(f"Error: {e}")
-        bot.edit_message_text("❌ تعذر جلب الملف من هذا الرابط، تأكد منه وحاول مجدداً!", message.chat.id, wait_msg.message_id)
-
-# 📋 الأوامر والاختصارات
+# 📋 الأوامر والاختصارات العامة
 @bot.message_handler(func=lambda message: check_match(message, ["اختصارات", "الاختصارات", "/start", "الاوامر", "اوامر"]))
 def reply_shortcuts(message):
     shortcuts_text = (
@@ -119,7 +67,7 @@ def reply_shortcuts(message):
         "👋 **الوداع:** تصبح على خير، أشوفكم على خير، باي\n"
         "👑 **الشخصيات والتحكم:** راح اطفيج، راح اطفيك، ايدا، الكسندر، يوسف\n"
         "🆔 **معلومات الحساب:** ايدي، بروفايلي\n"
-        "🎬 **التحميل من الروابط:** يوف + رابط الفيديو (تيك توك، يوتيوب، إلخ)"
+        "🤫 **الهمسات:** همسة + النص"
     )
     bot.reply_to(message, shortcuts_text, parse_mode="Markdown")
 
@@ -133,7 +81,7 @@ def reply_hello(message):
 
 @bot.message_handler(func=lambda message: check_match(message, ["شلونك", "شخبارك", "شكو ماكو", "اخبارك"]))
 def reply_howareyou(message):
-    bot.reply_to(message, "الحمد لله عايشين ونقصف بالفيديوهات، إنت شلونك عساك بخير؟ 😎")
+    bot.reply_to(message, "الحمد لله عايشين، إنت شلونك عساك بخير؟ 😎")
 
 @bot.message_handler(func=lambda message: check_match(message, ["جوعان", "جوع", "ريد أكل", "ناكل"]))
 def reply_hungry(message):
@@ -141,7 +89,7 @@ def reply_hungry(message):
 
 @bot.message_handler(func=lambda message: check_match(message, ["تعبان", "ضايج", "ملل", "خنكة"]))
 def reply_tired(message):
-    bot.reply_to(message, "افا علي، اكتب `يوف` ووراها الرابط حتى أحمل لك الفيديو فوراً! 🎵🖤", parse_mode="Markdown")
+    bot.reply_to(message, "فداك تعبك وضوجتك، اطلب لك لعبة `تك` وخلينا نغير جو! 🎵🖤", parse_mode="Markdown")
 
 @bot.message_handler(func=lambda message: check_match(message, ["منور", "منور البوت"]))
 def reply_mnoor(message):
@@ -173,4 +121,3 @@ def reply_id(message):
 
 bot.skip_pending = True
 bot.infinity_polling(skip_pending=True)
-
