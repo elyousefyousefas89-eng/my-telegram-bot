@@ -45,11 +45,14 @@ def check_match(message, target_list):
     text = message.text.strip().lower()
     return text in [w.lower() for w in target_list]
 
-# 🤫 نظام همسة (الرد على رسالة البوت أو منشن حصراً إذا تطلب الأمر، أو يستلم الأوامر المباشرة)
+# 🤫 نظام الهمسات السرية
 @bot.message_handler(func=lambda message: message.text and message.text.strip().startswith("همسة "))
 def secret_whisper(message):
     whisper_text = message.text.replace("همسة ", "").strip()
-    bot.delete_message(message.chat.id, message.message_id) # حذف رسالة الأصل لضمان السرية
+    try:
+        bot.delete_message(message.chat.id, message.message_id)
+    except:
+        pass
     bot.send_message(message.chat.id, f"🤫 **همسة سرية:**\n{whisper_text}", parse_mode="Markdown")
 
 # 📋 الأوامر والاختصارات العامة
