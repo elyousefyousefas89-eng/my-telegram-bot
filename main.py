@@ -2,17 +2,12 @@ import os
 import random
 import telebot
 from yt_dlp import YoutubeDL
-from google import genai
 
 TOKEN = "8968311546:AAEJV1sb8o-KIHzqRV3XHbIjUPQU5TRxFFQ"
 bot = telebot.TeleBot(TOKEN)
 
-# تهيئة عميل الذكاء الاصطناعي
-ai_client = genai.Client()
-
 # 🎯 قائمة الـ 500 سؤال للفعاليات (شاملة وموسعة)
 TAK_QUESTIONS = [
-    # --- قسم الصراحة والجرأة ---
     "شنو أكثر تصرف يستفزك بالناس؟", "لو خيروك بين 100 ألف دولار لو ترجع بالزمن 5 سنوات؟",
     "شنو الشيء اللي تسويه من تكون ضايج ومحد يدري عنه؟", "أكثر صفة تحبها بشخصيتك شنو؟",
     "شنو أكبر غلطة سويتها بحياتك وتعلمت منها؟", "لو طلع لك جني وقال لك اطلب أمنية واحدة فقط، شنو تطلب؟",
@@ -51,20 +46,23 @@ def check_match(message, target_list):
     text = message.text.strip().lower()
     return text in [w.lower() for w in target_list]
 
-# 🚀 التحميل السريع
+# 🚀 التحميل الشامل (من جميع الروابط أو البحث)
 @bot.message_handler(func=lambda message: message.text and message.text.strip().startswith("يوف "))
-def download_youtube_video(message):
+def download_media(message):
     query = message.text.replace("يوف ", "").strip()
     if not query:
-        bot.reply_to(message, "اكتب اسم المقطع بعد كلمة **يوف**، مثال:\n`يوف اغنية حسام الرسام`", parse_mode="Markdown")
+        bot.reply_to(message, "اكتب اسم المقطع أو الرابط بعد كلمة **يوف**، مثال:\n`يوف https://...`", parse_mode="Markdown")
         return
 
-    wait_msg = bot.reply_to(message, "⚡ جاري جلب الفيديو بأقصى سرعة...", parse_mode="Markdown")
+    wait_msg = bot.reply_to(message, "⚡ جاري التحميل من الرابط بأقصى سرعة...", parse_mode="Markdown")
     
+    # إذا كان المدخل رابط مباشر نستخدمه، وإذا نص نبحث عنه بيوتيوب
+    is_url = query.startswith("http://") or query.startswith("https://")
+    search_target = query if is_url else f"ytsearch1:{query}"
+
     ydl_opts = {
         'format': 'mp4/best',
-        'outtmpl': f'video_{message.from_user.id}.%(ext)s',
-        'default_search': 'ytsearch1:',
+        'outtmpl': f'media_{message.from_user.id}.%(ext)s',
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
@@ -77,7 +75,7 @@ def download_youtube_video(message):
 
     try:
         with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"ytsearch1:{query}", download=True)
+            info = ydl.extract_info(search_target, download=True)
             if 'entries' in info and len(info['entries']) > 0:
                 video_data = info['entries'][0]
                 filename = ydl.prepare_filename(video_data)
@@ -87,24 +85,24 @@ def download_youtube_video(message):
                 title = info.get('title', 'فيديو')
 
         if os.path.exists(filename):
-            with open(filename, 'rb') as video_file:
+            with open(filename, 'rb') as f:
                 bot.send_video(
                     message.chat.id,
-                    video_file,
-                    caption=f"🎬 **{title}**\n\n⚡ تم التحميل بسرعة صاروخية بطلب من: [{message.from_user.first_name}](tg://user?id={message.from_user.id})",
+                    f,
+                    caption=f"🎬 **{title}**\n\n⚡ تم التحميل بطلب من: [{message.from_user.first_name}](tg://user?id={message.from_user.id})",
                     reply_to_message_id=message.message_id,
                     parse_mode="Markdown"
                 )
             bot.delete_message(message.chat.id, wait_msg.message_id)
             os.remove(filename)
         else:
-            bot.edit_message_text("❌ حدث خطأ أثناء تنزيل الفيديو، حاول مجدداً!", message.chat.id, wait_msg.message_id)
+            bot.edit_message_text("❌ حدث خطأ أثناء التحميل، تأكد من الرابط وحاول مجدداً!", message.chat.id, wait_msg.message_id)
             
     except Exception as e:
         print(f"Error: {e}")
-        bot.edit_message_text("❌ تعذر جلب الفيديو، تأكد من الاسم أو الرابط وحاول مجدداً!", message.chat.id, wait_msg.message_id)
+        bot.edit_message_text("❌ تعذر جلب الملف من هذا الرابط، تأكد منه وحاول مجدداً!", message.chat.id, wait_msg.message_id)
 
-# 📋 قائمة الاختصارات والأوامر العامة الكاملة
+# 📋 قائمة الاختصارات والأوامر
 @bot.message_handler(func=lambda message: check_match(message, ["اختصارات", "الاختصارات", "/start", "الاوامر", "اوامر"]))
 def reply_shortcuts(message):
     shortcuts_text = (
@@ -119,7 +117,7 @@ def reply_shortcuts(message):
         "👋 **الوداع:** تصبح على خير، أشوفكم على خير، باي\n"
         "👑 **الشخصيات والتحكم:** راح اطفيج، راح اطفيك، ايدا، الكسندر، يوسف\n"
         "🆔 **معلومات الحساب:** ايدي، بروفايلي\n"
-        "🎬 **التحميل السريع:** يوف + اسم المقطع"
+        "🎬 **التحميل الشامل:** يوف + (رابط أو اسم المقطع)"
     )
     bot.reply_to(message, shortcuts_text, parse_mode="Markdown")
 
@@ -146,9 +144,9 @@ def reply_hungry(message):
 # 🌧️ التعب والضوجة والملل
 @bot.message_handler(func=lambda message: check_match(message, ["تعبان", "ضايج", "ملل", "خنكة"]))
 def reply_tired(message):
-    bot.reply_to(message, "افا علي، اكتب `يوف` واسم أغنيتك المفضلة وخلي البوت يسحب لك فيديو يروق راسك بسرعة! 🎵🖤", parse_mode="Markdown")
+    bot.reply_to(message, "افا علي، اكتب `يوف` والرابط أو اسم أغنيتك وخلي البوت يسحبها لك بسرعة! 🎵🖤", parse_mode="Markdown")
 
-# ✨ المديح والترحيب الشخصي
+# ✨ المديح
 @bot.message_handler(func=lambda message: check_match(message, ["منور", "منور البوت"]))
 def reply_mnoor(message):
     bot.reply_to(message, "بوجودك يا غالي، النور نور عيونك ✨")
