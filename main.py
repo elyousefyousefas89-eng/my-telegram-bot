@@ -1,11 +1,14 @@
 import os
 import random
-import requests
 import telebot
 from yt_dlp import YoutubeDL
+from google import genai
 
 TOKEN = "8968311546:AAEJV1sb8o-KIHzqRV3XHbIjUPQU5TRxFFQ"
 bot = telebot.TeleBot(TOKEN)
+
+# تهيئة عميل الذكاء الاصطناعي
+ai_client = genai.Client()
 
 # 🎯 قائمة الـ 500 سؤال للفعاليات (شاملة وموسعة)
 TAK_QUESTIONS = [
@@ -39,43 +42,16 @@ TAK_QUESTIONS = [
     "شنو الشي اللي سويته وبقيت ندمان عليه لحد اليوم؟", "هل تعرضت للخيانه من قبل صديق مقرب؟",
     "شنو الصفة اللي اذا شفتها بشخص تبتعد عنه فوراً؟", "شنو أكثر تاريخ بالتقويم تحبه وشنو المناسبة؟",
     "هل تحب تظهر مشاعرك للناس لو تكتمها بقلبك؟", "شنو الأغنية اللي تحسها تعبر عن حياتك بالظبط؟",
-    "لو ربحت مليون دولار هسه، شنو أول شي تشتريه؟", "منو الشخص اللي تحسه يفهَمك من عيونك بدون ما تحكي؟",
-
-    # --- قسم الحب والعلاقات ---
-    "شنو مواصفات شريك حياتك المستقبلية؟", "هل تعتقد أن الغيرة دليل حب لو مرض نفسي؟",
-    "أول مرة حبيت بيها بحياتك بأي عمر جانت؟", "شنو أبرد موقف تعرضتله من شخص جان تحبه؟",
-    "هل تكدر ترتبط بشخص بعيد عنك بغير محافظة أو دولة؟", "شنو الهدية الرومانسية اللي تتمنى تجيك؟",
-    "شنو أكتر كلمة تكره تسمعها من الحبيب؟", "هل تثق بالحب الإلكتروني (عبر السوشيال ميديا)؟",
-    "إذا شخص خانك، ترجع تنطي فرصة ثانية لو تنساه للأبد؟", "شنو أحلى مكان تكعد بيه ويا الشخص اللى تحبه؟",
-    "هل تكدر تخفي حبك لو عيونك تفضحك فوراً؟", "شنو الموقف اللي خلاك تتأكد إنك تحب هذا الشخص؟",
-    "هل تعتقد أن الزواج عن حب يفشل لو ينجح أكثر؟", "شنو أكتر صفة تجذبك بالبنت/الولد؟",
-    "هل سويْت شي مجنون علمود شخص تحبه؟", "شنو شعورك من تشوف شخص تحبه ويا غيرك؟",
-    "هل تعتقد الحب الأول مستحيل ينكسر لو يننسى؟", "لو حبيبك طلب منك تترك السوشيال ميديا كلياً، توافق؟",
-    "شنو العبارة الرومانسية اللي من تسمعها يطير عقلك؟", "شنو الشيء اللي يخرب الحب بسرعة حسب رأيك؟",
-
-    # --- قسم التحشيش والسوالف العرقية ---
-    "لو البصل يحكي، شنو أول شي يكوله إلك من تبكيه؟", "إذا انطوك جبل فلوس بس تكعد سنة كاملة ما تفتح تيك توك، توافق؟",
-    "ليش العراقي من يدور شي يكلبه كله وهو كدامه؟", "شنو أكتر مقلب اكلته بحياتك من أصدقائك؟",
-    "لو صرت رئيس وزراء العراق ليوم واحد، شتسو اول قرار؟", "شنو أكتر أكلة برمضان مستحيل تتنازل عنها؟",
-    "إذا فتحت موبايل صديقك المقرب، شنو أكتر شي تتوقع تلاقيه؟", "ليش الصوندة العراقية تعتبر أداة تربية خارقة؟",
-    "لو خيروك تاكل باجة كل يوم الصبح لو تاكل دولمة يومية بالليل، شتختار؟",
-    "شنو الشي اللي تصرفه عليه فلوسك وتحس نفسك طنطل؟", "لو صرت شتلة بصل شنو الموقف اللي تتخذه؟",
-    "شنو أطول مدة بقيت بيها بدون ما تسبح؟", "لو تكدر تختفي لمدة ساعة، شنو أول مكان تروحه؟",
-    "شنو الموقف اللي ردت تنشك الأرض وتبلعك بيه من الخجل؟", "لو قالولك تاكل فلفل حار لو تحكي أسرارك كلها بالجروب؟",
-    "أكثر جذبة كذبتها بحياتك ومشت على الكل شنو؟", "لو أخذوا منك الموبايل أسبوع، شنو البديل اللي تسويه؟",
-    "شنو الأكلة اللي الناس تحبها وأنت تكرهها وما تطيقها؟", "شنو أغرب حلم حلمته وحسيت نفسك بفيلم هندي؟",
-    "إذا خطفتك عصابة وقالوا نطالب بفدية، تحس أهلك يدفعون لو يقفلون الجهاز؟"
+    "لو ربحت مليون دولار هسه، شنو أول شي تشتريه؟", "منو الشخص اللي تحسه يفهَمك من عيونك بدون ما تحكي؟"
 ]
 
-def is_exact(message, target_words):
+def check_match(message, target_list):
     if not message.text:
         return False
     text = message.text.strip().lower()
-    if isinstance(target_words, str):
-        return text == target_words.lower()
-    return text in [w.lower() for w in target_words]
+    return text in [w.lower() for w in target_list]
 
-# 🎬 أمر التحميل (يستهلك طاقة السيرفر كاملة لجلب أي فيديو يوتيوب بدقة خارقة)
+# 🚀 التحميل السريع
 @bot.message_handler(func=lambda message: message.text and message.text.strip().startswith("يوف "))
 def download_youtube_video(message):
     query = message.text.replace("يوف ", "").strip()
@@ -83,12 +59,10 @@ def download_youtube_video(message):
         bot.reply_to(message, "اكتب اسم المقطع بعد كلمة **يوف**، مثال:\n`يوف اغنية حسام الرسام`", parse_mode="Markdown")
         return
 
-    wait_msg = bot.reply_to(message, "🚀 جاري سحب طاقة السيرفر وجلب الفيديو بأقصى سرعة وأعلى جودة...", parse_mode="Markdown")
+    wait_msg = bot.reply_to(message, "⚡ جاري جلب الفيديو بأقصى سرعة...", parse_mode="Markdown")
     
-    # إعدادات تستهلك عزم السيرفر بالكامل لدمج أفضل فيديو وأفضل صوت وتجاوز أي حظر
     ydl_opts = {
-        'format': 'bestvideo+bestaudio/best',
-        'merge_output_format': 'mp4',
+        'format': 'mp4/best',
         'outtmpl': f'video_{message.from_user.id}.%(ext)s',
         'default_search': 'ytsearch1:',
         'quiet': True,
@@ -96,7 +70,7 @@ def download_youtube_video(message):
         'nocheckcertificate': True,
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'ios', 'web']
+                'player_client': ['android', 'web', 'mweb']
             }
         }
     }
@@ -117,7 +91,7 @@ def download_youtube_video(message):
                 bot.send_video(
                     message.chat.id,
                     video_file,
-                    caption=f"🎬 **{title}**\n\n⚡ تم التحميل بأقصى سرعة سيرفر بطلب من: [{message.from_user.first_name}](tg://user?id={message.from_user.id})",
+                    caption=f"🎬 **{title}**\n\n⚡ تم التحميل بسرعة صاروخية بطلب من: [{message.from_user.first_name}](tg://user?id={message.from_user.id})",
                     reply_to_message_id=message.message_id,
                     parse_mode="Markdown"
                 )
@@ -130,53 +104,104 @@ def download_youtube_video(message):
         print(f"Error: {e}")
         bot.edit_message_text("❌ تعذر جلب الفيديو، تأكد من الاسم أو الرابط وحاول مجدداً!", message.chat.id, wait_msg.message_id)
 
-# 💬 قسم الردود والاختصارات الموسع (كل كلمات السوالف والدردشة)
-@bot.message_handler(func=lambda message: is_exact(message, ["اختصارات", "الاختصارات", "/start", "الاوامر", "اوامر"]))
+# 📋 قائمة الاختصارات والأوامر العامة الكاملة
+@bot.message_handler(func=lambda message: check_match(message, ["اختصارات", "الاختصارات", "/start", "الاوامر", "اوامر"]))
 def reply_shortcuts(message):
     shortcuts_text = (
-        "هلا بيك يا بعد روحي وتاج راسِي! 🖤🔥\n\n"
-        "🎬 **تحميل الفيديو بأقصى سرعة:** `يوف` + اسم المقطع (يسحب طاقة السيرفر كلها لجلب أي فيديو)\n"
-        "🎲 **فعاليات:** `تك` | `ت` (500 سؤال صراحة وجرأة وتحشيش)\n"
-        "👑 **الشخصيات والردود:** ايدا، يوسف، جوعان، شلونك، هلو، منور، تصبح على خير، وغيرها الكثير!\n"
-        "📊 **الحساب:** `ايدي` | `بروفايلي`"
+        "هلا بيك يا بعد روحي وتاج راسِي! 🖤🔥 إليك كل الاختصارات المتاحة:\n\n"
+        "🔹 **الأوامر العامة:** اختصارات، الاختصارات، /start، الاوامر، اوامر\n"
+        "🎲 **الفعاليات:** تك، ت (500 سؤال صراحة وجرأة)\n"
+        "👋 **الترحيب:** هلو، هلا، السلام عليكم، الوو، حي الله\n"
+        "💬 **السوالف:** شلونك، شخبارك، شكو ماكو، اخبارك\n"
+        "🍔 **الأكل:** جوعان، جوع، ريد أكل، ناكل\n"
+        "🌧️ **التعب والملل:** تعبان، ضايج، ملل، خنكة\n"
+        "✨ **المديح:** منور، منور البوت\n"
+        "👋 **الوداع:** تصبح على خير، أشوفكم على خير، باي\n"
+        "👑 **الشخصيات والتحكم:** راح اطفيج، راح اطفيك، ايدا، الكسندر، يوسف\n"
+        "🆔 **معلومات الحساب:** ايدي، بروفايلي\n"
+        "🎬 **التحميل السريع:** يوف + اسم المقطع\n"
+        "🤖 **الذكاء الاصطناعي:** امنشن البوت أو رد على رسالته ويسولف وياك!"
     )
     bot.reply_to(message, shortcuts_text, parse_mode="Markdown")
 
-@bot.message_handler(func=lambda message: is_exact(message, ["تك", "ت"]))
+# 🎲 لعبة التك
+@bot.message_handler(func=lambda message: check_match(message, ["تك", "ت"]))
 def reply_tak(message):
     bot.reply_to(message, f"🎯 **فعالية:**\n\n{random.choice(TAK_QUESTIONS)}", parse_mode="Markdown")
 
-@bot.message_handler(func=lambda message: is_exact(message, ["هلو", "هلا", "السلام عليكم", "الوو", "حي الله"]))
+# 👋 الترحيب والسلام
+@bot.message_handler(func=lambda message: check_match(message, ["هلو", "هلا", "السلام عليكم", "الوو", "حي الله"]))
 def reply_hello(message):
     bot.reply_to(message, "هلا بيك يالغالي، منور البوت والقروب كله! 🖤✨")
 
-@bot.message_handler(func=lambda message: is_exact(message, ["شلونك", "شخبارك", "شكو ماكو", "اخبارك"]))
+# 💬 السوالف والأخبار
+@bot.message_handler(func=lambda message: check_match(message, ["شلونك", "شخبارك", "شكو ماكو", "اخبارك"]))
 def reply_howareyou(message):
     bot.reply_to(message, "الحمد لله عايشين ونقصف بالفيديوهات، إنت شلونك عساك بخير؟ 😎")
 
-@bot.message_handler(func=lambda message: is_exact(message, ["جوعان", "جوع", "ريد أكل", "ناكل"]))
+# 🍔 الأكل والجوع
+@bot.message_handler(func=lambda message: check_match(message, ["جوعان", "جوع", "ريد أكل", "ناكل"]))
 def reply_hungry(message):
     bot.reply_to(message, "قوم اطلب صاج أو لفات فلافل وسد حلگك، لا تخليني أجوع وياك! 😂🍔")
 
-@bot.message_handler(func=lambda message: is_exact(message, ["تعبان", "ضايج", "ملل", "خنكة"]))
+# 🌧️ التعب والضوجة والملل
+@bot.message_handler(func=lambda message: check_match(message, ["تعبان", "ضايج", "ملل", "خنكة"]))
 def reply_tired(message):
-    bot.reply_to(message, "افا علي، اكتب `يوف` واسم أغنيتك المفضلة وخلي البوت يسحب لك فيديو يروق راسك! 🎵🖤")
+    bot.reply_to(message, "افا علي، اكتب `يوف` واسم أغنيتك المفضلة وخلي البوت يسحب لك فيديو يروق راسك بسرعة! 🎵🖤", parse_mode="Markdown")
 
-@bot.message_handler(func=lambda message: is_exact(message, ["منور", "منور البوت"]))
+# ✨ المديح والترحيب الشخصي
+@bot.message_handler(func=lambda message: check_match(message, ["منور", "منور البوت"]))
 def reply_mnoor(message):
     bot.reply_to(message, "بوجودك يا غالي، النور نور عيونك ✨")
 
-@bot.message_handler(func=lambda message: is_exact(message, ["تصبح على خير", "أشوفكم على خير", "باي"]))
+# 👋 الوداع
+@bot.message_handler(func=lambda message: check_match(message, ["تصبح على خير", "أشوفكم على خير", "باي"]))
 def reply_bye(message):
     bot.reply_to(message, "وأنت من أهل الخير، دير بالك على نفسك ونشوفك على خير 👋🖤")
 
-@bot.message_handler(func=lambda message: is_exact(message, ["راح اطفيج", "راح اطفيك"]))
+# ⚙️ الشخصيات والتحكم
+@bot.message_handler(func=lambda message: check_match(message, ["راح اطفيج", "راح اطفيك"]))
 def reply_turn_off(message):
     bot.reply_to(message, "تدلل بابا، السيرفر شغال 24 ساعة وما أنطفي أبداً ❤️")
 
-@bot.message_handler(func=lambda message: is_exact(message, "ايدا"))
+@bot.message_handler(func=lambda message: check_match(message, ["ايدا"]))
 def reply_ada(message):
-    bot.reply_to(message, "روح ويوميات ايدا! نعم يويو ❤️✨")
+    bot.reply_to(message, "روح ويوميات ايدا! نعم يويو الملكة بدون منازع ❤️✨")
+
+@bot.message_handler(func=lambda message: check_match(message, ["الكسندر"]))
+def reply_alexander(message):
+    bot.reply_to(message, "حاضر، الكسندر وياكم! الأسطورة حاضرة 😎🔥")
+
+@bot.message_handler(func=lambda message: check_match(message, ["يوسف"]))
+def reply_yousef(message):
+    bot.reply_to(message, "ذكره لا يذكر، عوفك من يوسف وخلينا بالسوالف الزينة! 😂")
+
+# 🆔 معلومات الحساب
+@bot.message_handler(func=lambda message: check_match(message, ["ايدي", "بروفايلي"]))
+def reply_id(message):
+    bot.reply_to(message, f"🆔 ايدك يا بطل: `{message.from_user.id}`\n👤 اسمك: {message.from_user.first_name}", parse_mode="Markdown")
+
+# 🤖 الذكاء الاصطناعي (يعمل فقط عند المنشن أو الرد على البوت)
+@bot.message_handler(func=lambda message: True)
+def ai_reply_on_mention(message):
+    if not message.text or message.text.startswith("/"):
+        return
+    
+    is_reply_to_bot = message.reply_to_message and message.reply_to_message.from_user.id == bot.get_me().id
+    is_mentioned = f"@{bot.get_me().username}" in message.text if bot.get_me().username else False
+
+    if is_reply_to_bot or is_mentioned:
+        try:
+            clean_text = message.text.replace(f"@{bot.get_me().username}", "").strip()
+            response = ai_client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=f"أنت بوت تلغرام عراقي ذكي ومحبوب، تجيب باللهجة العراقية وبأسلوب لطيف ومختصر ومناسب للدردشة. رد على هذه الرسالة: {clean_text}"
+            )
+            if response and response.text:
+                bot.reply_to(message, response.text)
+        except Exception as e:
+            print(f"AI Error: {e}")
+            bot.reply_to(message, "ها حبيبي وياك، صار عندي لود بسيط، عيدها قلبي! 😅")
 
 bot.skip_pending = True
 bot.infinity_polling(skip_pending=True)
